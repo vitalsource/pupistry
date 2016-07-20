@@ -1,0 +1,36 @@
+#!/bin/bash -x
+# Bootstrap for CentOS 6
+#
+(
+exec 1> >(logger -s -t user-data) 2>&1
+
+rpm -ivh https://yum.puppetlabs.com/puppetlabs-release-pc1-el-6.noarch.rpm
+
+yum update --assumeyes
+yum install --assumeyes puppet-agent gcc zlib-devel libxml2-devel patch gnupg2
+
+/opt/puppetlabs/puppet/bin/gem install pupistry --no-ri --no-rdoc
+mkdir -p /etc/pupistry
+mkdir -p <%= puppetcode %>
+cat > /etc/pupistry/settings.yaml << "EOF"
+general:
+  app_cache: ~/.pupistry/cache
+  s3_bucket: <%= s3_bucket %>
+  s3_prefix: <%= s3_prefix %>
+  gpg_disable: <%= gpg_disable %>
+  gpg_signing_key: <%= gpg_signing_key %>
+agent:
+  puppetcode: <%= puppetcode %>
+  access_key_id: <%= access_key_id %>
+  secret_access_key: <%= secret_access_key %>
+  region: <%= region %>
+  proxy_uri: <%= proxy_uri %>
+  daemon_frequency: <%= daemon_frequency %>
+  daemon_minimal: <%= daemon_minimal %>
+  environment: <%= environment %>
+EOF
+chmod 700 /etc/pupistry/settings.yaml
+chmod 700 <%= puppetcode %>
+sed -i -e 's;\$PATH;/opt/puppetlabs/bin:/opt/puppetlabs/puppet/bin:$PATH;g' /etc/init.d/pupistry
+PATH=/opt/puppetlabs/bin:/opt/puppetlabs/puppet/bin:$PATH /opt/puppetlabs/puppet/bin/pupistry apply
+)
